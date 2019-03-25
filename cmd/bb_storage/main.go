@@ -27,6 +27,8 @@ func main() {
 	var (
 		blobstoreConfig  = flag.String("blobstore-config", "/config/blobstore.conf", "Configuration for blob storage")
 		webListenAddress = flag.String("web.listen-address", ":80", "Port on which to expose metrics")
+		certFile         = flag.String("tls-cert-file", "", "Certificate file for TLS server authentication")
+		keyFile          = flag.String("tls-key-file", "", "Key file for TLS server authentication")
 	)
 	var schedulersList util.StringList
 	flag.Var(&schedulersList, "scheduler", "Backend capable of executing build actions. Example: debian8|hostname-of-debian8-scheduler:8981")
@@ -85,10 +87,17 @@ func main() {
 	})
 
 	// RPC server.
-	s := grpc.NewServer(
+	opts := []grpc.ServerOption {
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	)
+	}
+	creds, err := util.MakeCreds(certFile, keyFile)
+	if err != nil {
+		log.Fatal("Loading TLS materials failed: ", err)
+	} else if creds != nil {
+		opts = append(opts, grpc.Creds(creds))
+	}
+	s := grpc.NewServer(opts...)
 	remoteexecution.RegisterActionCacheServer(s, ac.NewActionCacheServer(actionCache, allowActionCacheUpdatesForInstances))
 	remoteexecution.RegisterContentAddressableStorageServer(s, cas.NewContentAddressableStorageServer(contentAddressableStorageBlobAccess))
 	bytestream.RegisterByteStreamServer(s, cas.NewByteStreamServer(contentAddressableStorageBlobAccess, 1<<16))
