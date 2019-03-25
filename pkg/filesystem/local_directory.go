@@ -8,6 +8,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/buildbarn/bb-storage/pkg/util"
+
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -227,20 +229,20 @@ func (d *localDirectory) RemoveAllChildren() error {
 			unix.Fchmodat(d.fd, name, 0700, 0)
 			subdirectory, err := d.Enter(name)
 			if err != nil {
-				return err
+				return util.StatusWrap(err, name)
 			}
 			err = subdirectory.RemoveAllChildren()
 			subdirectory.Close()
 			if err != nil {
-				return err
+				return util.StatusWrap(err, name)
 			}
 			if err := unix.Unlinkat(d.fd, name, unix.AT_REMOVEDIR); err != nil {
-				return err
+				return util.StatusWrap(err, name)
 			}
 		} else {
 			// Not a directory. Remove it immediately.
 			if err := unix.Unlinkat(d.fd, name, 0); err != nil {
-				return err
+				return util.StatusWrap(err, name)
 			}
 		}
 	}
