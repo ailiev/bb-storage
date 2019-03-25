@@ -33,6 +33,8 @@ func main() {
 		collectorEndpointURI = flag.String("jaeger.collector-endpoint", "http://127.0.0.1:14268/api/traces", "Jaeger collector endpoint")
 		serviceName          = flag.String("trace.service-name", "bb_storage", "Service name for tracing")
 		alwaysSample         = flag.Bool("trace.always-sample", false, "Record all traces.")
+		certFile         = flag.String("tls-cert-file", "", "Certificate file for TLS server authentication")
+		keyFile          = flag.String("tls-key-file", "", "Key file for TLS server authentication")
 	)
 	var schedulersList util.StringList
 	flag.Var(&schedulersList, "scheduler", "Backend capable of executing build actions. Example: debian8|hostname-of-debian8-scheduler:8981")
@@ -93,11 +95,18 @@ func main() {
 	})
 
 	// RPC server.
-	s := grpc.NewServer(
+	opts := []grpc.ServerOption {
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		grpc.StatsHandler(&ocgrpc.ServerHandler{}),
-	)
+	}
+	creds, err := util.MakeCreds(certFile, keyFile)
+	if err != nil {
+		log.Fatal("Loading TLS materials failed: ", err)
+	} else if creds != nil {
+		opts = append(opts, grpc.Creds(creds))
+	}
+	s := grpc.NewServer(opts...)
 	remoteexecution.RegisterActionCacheServer(s, ac.NewActionCacheServer(actionCache, allowActionCacheUpdatesForInstances))
 	remoteexecution.RegisterContentAddressableStorageServer(s, cas.NewContentAddressableStorageServer(contentAddressableStorageBlobAccess))
 	bytestream.RegisterByteStreamServer(s, cas.NewByteStreamServer(contentAddressableStorageBlobAccess, 1<<16))
