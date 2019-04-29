@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"errors"
+	"strings"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -168,7 +169,9 @@ func createBlobAccess(config *pb.BlobAccessConfiguration, storageType string, di
 		// If AccessKeyId isn't specified, allow AWS to search for credentials.
 		// In AWS EC2, this search will include the instance IAM Role.
 		if backend.S3.AccessKeyId != "" {
-			cfg.Credentials = credentials.NewStaticCredentials(backend.S3.AccessKeyId, backend.S3.SecretAccessKey, "")
+			accessKeyId := maybeFromEnv(backend.S3.AccessKeyId)
+			secretAccessKey := maybeFromEnv(backend.S3.SecretAccessKey)
+			cfg.Credentials = credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
 		}
 		session := session.New(&cfg)
 		s3 := s3.New(session)
@@ -229,4 +232,13 @@ func createBlobAccess(config *pb.BlobAccessConfiguration, storageType string, di
 		return nil, errors.New("Configuration did not contain a backend")
 	}
 	return blobstore.NewMetricsBlobAccess(implementation, fmt.Sprintf("%s_%s", storageType, backendType)), nil
+}
+
+func maybeFromEnv(s string) string {
+	if (strings.HasPrefix(s, "env:")) {
+		envname := s[4:len(s)]
+		return os.Getenv(envname)
+	} else {
+		return s
+	}
 }
