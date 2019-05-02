@@ -187,6 +187,12 @@ func createBlobAccess(configuration *pb.BlobAccessConfiguration, storageType str
 			if backendConfig.S3.AccessKeyId != "" {
 				cfg.Credentials = credentials.NewStaticCredentials(backendConfig.S3.AccessKeyId, backendConfig.S3.SecretAccessKey, "")
 			}
+
+			_,debug := os.LookupEnv("BUILDBARN_S3_LOGDEBUG")
+			if (debug) {
+				cfg = *cfg.WithLogLevel(aws.LogDebugWithRequestErrors | aws.LogDebugWithRequestRetries)
+			}
+
 			session := session.New(&cfg)
 			ctx := context.Background()
 			bucket, err := s3blob.OpenBucket(ctx, session, backendConfig.S3.Bucket, nil)
