@@ -173,6 +173,12 @@ func createBlobAccess(config *pb.BlobAccessConfiguration, storageType string, di
 			secretAccessKey := maybeFromEnv(backend.S3.SecretAccessKey)
 			cfg.Credentials = credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
 		}
+
+		_,debug := os.LookupEnv("BUILDBARN_S3_LOGDEBUG")
+		if (debug) {
+			cfg = *cfg.WithLogLevel(aws.LogDebugWithRequestErrors | aws.LogDebugWithRequestRetries)
+		}
+
 		session := session.New(&cfg)
 		s3 := s3.New(session)
 		// Set the uploader concurrency to 1 to drastically reduce memory usage.
