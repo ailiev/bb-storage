@@ -3,8 +3,11 @@ package builder
 import (
 	"context"
 	"io"
+	"log"
 
 	remoteexecution "github.com/bazelbuild/remote-apis/build/bazel/remote/execution/v2"
+
+	"github.com/buildbarn/bb-storage/pkg/util"
 
 	"google.golang.org/grpc"
 )
@@ -36,11 +39,14 @@ func forwardOperations(client remoteexecution.Execution_ExecuteClient, server re
 		operation, err := client.Recv()
 		if err != nil {
 			if err == io.EOF {
+				log.Printf("forwarding_build_queue: upstream executor recv operation returned EOF")
 				return nil
 			}
-			return err
+			return util.StatusWrap(err, "forwarding_build_queue: upstream executor recv operation")
 		}
+
 		if err := server.Send(operation); err != nil {
+			log.Printf("forwarding_build_queue: sending operation to our client failed: %q", err)
 			return err
 		}
 	}
@@ -49,7 +55,7 @@ func forwardOperations(client remoteexecution.Execution_ExecuteClient, server re
 func (bq *forwardingBuildQueue) Execute(in *remoteexecution.ExecuteRequest, out remoteexecution.Execution_ExecuteServer) error {
 	client, err := bq.executionClient.Execute(out.Context(), in)
 	if err != nil {
-		return err
+		return util.StatusWrap(err, "forwarding_build_queue Execute")
 	}
 	return forwardOperations(client, out)
 }
@@ -57,7 +63,7 @@ func (bq *forwardingBuildQueue) Execute(in *remoteexecution.ExecuteRequest, out 
 func (bq *forwardingBuildQueue) WaitExecution(in *remoteexecution.WaitExecutionRequest, out remoteexecution.Execution_WaitExecutionServer) error {
 	client, err := bq.executionClient.WaitExecution(out.Context(), in)
 	if err != nil {
-		return err
+		return util.StatusWrap(err, "forwarding_build_queue WaitExecution")
 	}
 	return forwardOperations(client, out)
 }
