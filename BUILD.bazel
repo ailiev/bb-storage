@@ -9,3 +9,21 @@ gazelle(
 buildifier(
     name = "buildifier",
 )
+
+load("@io_bazel_rules_go//go:def.bzl", "go_path")
+
+go_path(
+    name = "gopath",
+    deps = [
+        "%s:go_default_library" % (pkg)
+        for pkg in ["//pkg/%s" % (dir) for dir in [
+            "builder",
+            "ac",
+            "blobstore",
+            "cas",
+            "filesystem",
+            "util",
+        ]]
+        #+ ["//cmd/bb_storage"]
+    ],
+)
