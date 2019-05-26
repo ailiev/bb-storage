@@ -9,3 +9,31 @@ gazelle(
 buildifier(
     name = "buildifier",
 )
+
+load("@io_bazel_rules_go//go:def.bzl", "go_path")
+
+# build this to get the gopath directory that can be used by standard Go tools
+# Referenced in vscode project config .vscode/settings.json
+go_path(
+    name = "gopath",
+    testonly = True,  # so we can depend on test targets
+    deps = [
+               "%s:go_default_library" % (pkg)
+               for pkg in ["//pkg/%s" % (dir) for dir in [
+                   "builder",
+                   "ac",
+                   "blobstore",
+                   "cas",
+                   "configuration",
+                   "filesystem",
+                   "util",
+               ]]
+           ] +
+           [
+               "%s:go_default_test" % (pkg)
+               for pkg in ["//pkg/%s" % (dir) for dir in [
+                   "util",
+               ]]
+           ] +
+           ["//cmd/bb_storage"],
+)
