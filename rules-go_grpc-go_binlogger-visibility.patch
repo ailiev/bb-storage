@@ -1,0 +1,11 @@
+--- io_bazel_rules_go/third_party/org_golang_google_grpc-gazelle.patch~	2019-02-26 17:42:33.000000000 +0000
++++ io_bazel_rules_go/third_party/org_golang_google_grpc-gazelle.patch	2019-05-30 18:49:52.461363596 +0100
+@@ -1355,7 +1355,7 @@
+ +        "util.go",
+ +    ],
+ +    importpath = "google.golang.org/grpc/internal/binarylog",
+-+    visibility = ["//:__subpackages__"],
+++    visibility = ["//visibility:public"],
+ +    deps = [
+ +        "//binarylog/grpc_binarylog_v1:go_default_library",
+ +        "//grpclog:go_default_library",

@@ -42,6 +42,11 @@ func main() {
 	flag.Var(&allowActionCacheUpdatesForInstancesList, "allow-ac-updates-for-instance", "Allow clients to write into the action cache for this instance")
 	flag.Parse()
 
+	err := util.UseBinaryLogTempFileSink()
+	if err != nil {
+		log.Fatalf("Failed to UseBinaryLogTempFileSink: %v", err)
+	}
+
 	// Web server for metrics and profiling.
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {

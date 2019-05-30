@@ -10,6 +10,8 @@ buildifier(
     name = "buildifier",
 )
 
+exports_files(["rules-go_grpc-go_binlogger-visibility.patch"])
+
 load("@io_bazel_rules_go//go:def.bzl", "go_path")
 
 go_path(
