@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "digest.go",
+        "grpc.go",
         "status.go",
     ],
     importpath = "github.com/buildbarn/bb-storage/pkg/util",
@@ -11,6 +12,8 @@ go_library(
     deps = [
         "@com_github_bazelbuild_remote_apis//build/bazel/remote/execution/v2:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//credentials:go_default_library",
+        "@org_golang_google_grpc//internal/binarylog:go_default_library",
         "@org_golang_google_grpc//status:go_default_library",
     ],
 )

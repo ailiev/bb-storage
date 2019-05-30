@@ -35,6 +35,12 @@ func main() {
 		log.Fatalf("Failed to read configuration from %s: %s", os.Args[1], err)
 	}
 
+	util.ValidateTls(storageConfiguration.Tls)
+
+	if blErr := util.UseBinaryLogTempFileSink(); blErr != nil {
+		log.Fatalf("Failed to UseBinaryLogTempFileSink: %v", blErr)
+	}
+
 	// Web server for metrics and profiling.
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {

@@ -35,6 +35,8 @@ http_archive(
         "https://github.com/bazelbuild/rules_go/releases/download/0.18.6/rules_go-0.18.6.tar.gz",
     ],
     sha256 = "f04d2373bcaf8aa09bccb08a98a57e721306c8f6043a2a0ee610fd6853dcde3d",
+    patches = ["//:rules-go_grpc-go_binlogger-visibility.patch"],
+    patch_args = ["-p1"],
 )
 
 http_archive(
