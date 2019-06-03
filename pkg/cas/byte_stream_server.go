@@ -59,19 +59,21 @@ func NewByteStreamServer(blobAccess blobstore.BlobAccess, readChunkSize int) byt
 }
 
 func (s *byteStreamServer) Read(in *bytestream.ReadRequest, out bytestream.ByteStream_ReadServer) error {
-	if in.ReadOffset != 0 || in.ReadLimit != 0 {
-		return status.Error(codes.Unimplemented, "This service does not support downloading partial files")
-	}
-
 	digest, err := util.NewDigestFromBytestreamPath(in.ResourceName)
 	if err != nil {
 		return err
 	}
-	_, r, err := s.blobAccess.Get(out.Context(), digest)
+	blobLength, r, err := s.blobAccess.Get(out.Context(), digest)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
+
+	skipBytesRemaining := in.ReadOffset
+	readBytesRemaining := in.ReadLimit
+	if in.ReadLimit <= 0 {
+		readBytesRemaining = blobLength - skipBytesRemaining
+	}
 
 	for {
 		readBuf := make([]byte, s.readChunkSize)
@@ -79,11 +81,28 @@ func (s *byteStreamServer) Read(in *bytestream.ReadRequest, out bytestream.ByteS
 		if err != nil && err != io.EOF {
 			return err
 		}
-		if n > 0 {
-			if err := out.Send(&bytestream.ReadResponse{Data: readBuf[:n]}); err != nil {
-				return err
+		bytesRead := int64(n)
+
+		if skipBytesRemaining >= bytesRead {
+			skipBytesRemaining -= bytesRead
+		} else if readBytesRemaining > 0 {
+			// min(readBytesRemaining, n - skipBytes)
+			lengthToRead := bytesRead - skipBytesRemaining
+			if readBytesRemaining < lengthToRead {
+				lengthToRead = readBytesRemaining
 			}
+
+			if lengthToRead > 0 {
+				if err := out.Send(&bytestream.ReadResponse{Data: readBuf[skipBytesRemaining:lengthToRead]}); err != nil {
+					return err
+				}
+			}
+			skipBytesRemaining = 0
+			readBytesRemaining -= lengthToRead
+		} else {
+			return nil
 		}
+
 		if err == io.EOF {
 			return nil
 		}
