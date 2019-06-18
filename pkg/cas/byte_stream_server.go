@@ -3,6 +3,7 @@ package cas
 import (
 	"context"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 
@@ -59,6 +60,10 @@ func NewByteStreamServer(blobAccess blobstore.BlobAccess, readChunkSize int) byt
 }
 
 func (s *byteStreamServer) Read(in *bytestream.ReadRequest, out bytestream.ByteStream_ReadServer) error {
+	if in.ReadOffset != 0 || in.ReadLimit != 0 {
+		log.Printf("Got a request to download a partial file: %+v", in)
+	}
+
 	digest, err := util.NewDigestFromBytestreamPath(in.ResourceName)
 	if err != nil {
 		return err
