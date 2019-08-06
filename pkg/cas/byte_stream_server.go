@@ -98,7 +98,11 @@ func (s *byteStreamServer) Read(in *bytestream.ReadRequest, out bytestream.ByteS
 			}
 
 			if lengthToRead > 0 {
-				if err := out.Send(&bytestream.ReadResponse{Data: readBuf[skipBytesRemaining:lengthToRead]}); err != nil {
+				len := len(readBuf)
+				start := skipBytesRemaining
+				end := start + lengthToRead
+				log.Printf("Sending partial file contents: buf len=%d, start=%d, end=%d", len, start, end)
+				if err := out.Send(&bytestream.ReadResponse{Data: readBuf[start:end]}); err != nil {
 					return err
 				}
 			}
